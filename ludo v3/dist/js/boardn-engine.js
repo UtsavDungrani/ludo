@@ -1,11 +1,11 @@
-/* board5-engine.js
+/* boardn-engine.js
  * ---------------------------------------------------------------------------
- * The 5-player game, with no DOM in it.
+ * The polygonal-board game - five seats or six - with no DOM in it.
  *
  * game-state.js / game-movement.js keep the 4-player rules, but they keep them
  * in the page: a token's position is "which div is it inside", and a capture is
- * found by reading the cells' children. That works for a board made of divs. The
- * 5-player board is one SVG, so there are no containers to parent tokens into
+ * found by reading the cells' children. That works for a board made of divs. A
+ * polygonal board is one SVG, so there are no containers to parent tokens into
  * and the same trick has nothing to hold on to.
  *
  * So the rules live here instead, over plain data, and the view is told what
@@ -18,20 +18,22 @@
  *   - two tokens of one colour on a cell are a block and survive
  *   - the last cell must be reached exactly
  *
- * The path is generated from the geometry rather than written out: 64 ring
- * cells from the player's start round to their own arm tip, then the 5 home
- * column cells, then home. 70 entries, where the 4-player board has 57.
+ * The path is generated from the geometry rather than written out: every ring
+ * cell but one, from the player's start round to their own arm tip, then the 5
+ * home column cells, then home. That is 70 entries on five seats and 83 on
+ * six, where the 4-player board has 57.
+ *
+ * Seat count comes in on `cfg.players`; nothing below is written for a fixed n.
  * ---------------------------------------------------------------------------
  */
 
 import {
   CONFIG,
-  PLAYERS,
   HOME_CELLS,
   ringCells,
   startIndices,
   entryIndices,
-} from "./board5-geometry.js";
+} from "./boardn-geometry.js";
 
 export const YARD = -1;
 export const TOKENS_PER_PLAYER = 4;
@@ -59,7 +61,7 @@ export function buildPaths(cfg = CONFIG) {
   const entries = entryIndices(cfg);
   const paths = {};
 
-  PLAYERS.forEach((p, i) => {
+  cfg.players.forEach((p, i) => {
     const path = [];
     let at = starts[i];
 
@@ -112,12 +114,12 @@ export const colorOf = (id) => id.split("-")[1];
 /* --- the game ------------------------------------------------------------ */
 
 /**
- * `colors` is the seating order; leave it out and all five play. `rng` is
- * injectable so a test can play a scripted game.
+ * `colors` is the seating order; leave it out and every seat on `cfg` plays.
+ * `rng` is injectable so a test can play a scripted game.
  */
 export function createGame({ cfg = CONFIG, colors, names = {}, rng = Math.random } = {}) {
   const track = buildTrack(cfg);
-  const seats = (colors && colors.length ? colors : PLAYERS.map((p) => p.id)).filter(
+  const seats = (colors && colors.length ? colors : cfg.players.map((p) => p.id)).filter(
     (c) => track.paths[c],
   );
 

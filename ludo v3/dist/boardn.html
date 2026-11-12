@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Polygonal Ludo Boards</title>
+    <link rel="icon" type="image/x-icon" href="../img/favico2.png" />
+    <style>
+      :root {
+        --ink: #0f3d45;
+        --cyan: #20a2b6;
+        --wash: #9ca3af;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+        padding: 28px 16px 48px;
+        background: var(--wash);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: #111827;
+      }
+      h1 { margin: 0; font-size: 20px; letter-spacing: 0.5px; }
+      .masthead {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      /* This page only draws the board for the geometry sliders - the playable
+         games are game5.html / game6.html, which is easy to miss when you land
+         here first. */
+      .play {
+        padding: 7px 14px;
+        border-radius: 9999px;
+        background: #111827;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .play:hover { background: #374151; }
+      .hint { font-size: 12px; color: #374151; max-width: 60ch; text-align: center; }
+      .bar { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; justify-content: center; width: 100%; }
+      input[type="range"] { max-width: 130px; }
+      label { display: flex; align-items: center; gap: 7px; font-size: 14px; user-select: none; }
+      /* The seat count is not a design knob - it picks which board you are
+         looking at - so it stays visible even without ?design=1. */
+      .seats {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 18px;
+        border: 2px solid #111827;
+        border-radius: 9999px;
+        background: #fff;
+      }
+      .seats input[type="range"] { width: 220px; max-width: 46vw; accent-color: #111827; }
+      .seats output {
+        min-width: 10ch;
+        font-size: 13px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .seats .end { font-size: 12px; font-weight: 600; color: #374151; }
+      /* Tick marks under the slider, so the seven stops are visible and
+         clickable rather than guessed at from the handle position. */
+      .ticks {
+        display: flex;
+        justify-content: space-between;
+        width: min(220px, 46vw);
+        margin: -6px auto 0;
+      }
+      .ticks button {
+        border: 0;
+        background: none;
+        padding: 2px 4px;
+        font-size: 11px;
+        color: #374151;
+        cursor: pointer;
+        font-variant-numeric: tabular-nums;
+      }
+      .ticks button[aria-pressed="true"] { color: #111827; font-weight: 700; }
+      .stage { width: min(88vw, 88vmin, 720px); aspect-ratio: 1; }
+      svg { width: 100%; height: 100%; display: block; }
+      .facts {
+        display: flex; gap: 22px; flex-wrap: wrap; justify-content: center;
+        font-size: 13px; color: #111827;
+      }
+      .facts b { font-variant-numeric: tabular-nums; }
+      /* Design controls are for tuning the board, not for playing on it.
+         They stay out of the DOM's way unless the page is opened as
+         boardn.html?design=1 - the inputs still exist, so draw() can read
+         their defaults either way. */
+      .design-only { display: none; }
+      body.design .design-only { display: flex; }
+    </style>
+  </head>
+  <body>
+    <div class="masthead">
+      <h1><span id="title-seats">5</span>-Player Ludo Board</h1>
+      <a class="play" id="play-link" href="game5.html">Play &rarr;</a>
+    </div>
+
+    <div class="seats">
+      <span class="end">4</span>
+      <input
+        type="range"
+        id="seats"
+        min="4"
+        max="10"
+        step="1"
+        value="5"
+        list="seat-stops"
+        aria-label="Players"
+      />
+      <span class="end">10</span>
+      <output id="seats-val" for="seats">5 players</output>
+    </div>
+    <datalist id="seat-stops">
+      <option value="4"></option><option value="5"></option><option value="6"></option>
+      <option value="7"></option><option value="8"></option><option value="9"></option>
+      <option value="10"></option>
+    </datalist>
+    <div class="ticks" id="seat-ticks"></div>
+
+    <div class="hint">
+      Board geometry only - drag the slider for 4 to 10 players. The games, dice
+      and debug tools live on <a href="game5.html">game5.html</a> and
+      <a href="game6.html">game6.html</a> (add <code>?debug=1</code> for the
+      console tools). Add <code>?design=1</code> here for the tuning sliders,
+      and <code>?n=7</code> to land straight on a given board.
+    </div>
+
+    <div class="bar design-only">
+      <label><input type="checkbox" id="toggle-guides" /> construction guides</label>
+      <label>long edge <input type="range" id="arc" min="34" max="58" step="1" value="50" /> <span id="arc-val">50&deg;</span></label>
+      <label>frame <input type="range" id="frame" min="0" max="60" step="1" value="0" /> <span id="frame-val">0</span></label>
+      <label>white triangle <input type="range" id="pad" min="0" max="90" step="1" value="58" /> <span id="pad-val">band 32</span></label>
+    </div>
+
+    <div class="stage"><svg id="board"></svg></div>
+
+    <div class="facts design-only">
+      <span>sides <b id="f-points">&mdash;</b></span>
+      <span>long side <b id="f-long">&mdash;</b></span>
+      <span>short side <b id="f-short">&mdash;</b></span>
+      <span>ratio <b id="f-ratio">&mdash;</b></span>
+      <span>cell <b id="f-cell">&mdash;</b></span>
+      <span>ring <b id="f-ring">&mdash;</b></span>
+    </div>
+
+    <script type="module">
+      import {
+        ARCS,
+        SEAT_COUNTS,
+        boardConfig,
+        describe,
+        cellSize,
+        ringCells,
+      } from "./js/boardn-geometry.js";
+      import { renderFrame, renderSkeleton, renderTrack, renderTokens } from "./js/boardn-render.js";
+
+      const params = new URLSearchParams(location.search);
+      if (params.get("design") === "1") document.body.classList.add("design");
+
+      const svg = document.getElementById("board");
+      const guides = document.getElementById("toggle-guides");
+      const arc = document.getElementById("arc");
+      const frame = document.getElementById("frame");
+      const pad = document.getElementById("pad");
+      const seatSlider = document.getElementById("seats");
+      const seatVal = document.getElementById("seats-val");
+      const seatTicks = document.getElementById("seat-ticks");
+
+      /* The slider spans whatever boardn-geometry.js knows how to lay out, so
+         adding a seat count there adds a stop here. */
+      seatSlider.min = SEAT_COUNTS[0];
+      seatSlider.max = SEAT_COUNTS[SEAT_COUNTS.length - 1];
+
+      const wanted = Number(params.get("n"));
+      let seats = SEAT_COUNTS.includes(wanted) ? wanted : 5;
+      seatSlider.value = seats;
+
+      /* A tick per stop, each one clickable: dragging is fine for a sweep, but
+         jumping straight to "8 players" should not need aim. */
+      const tickButtons = SEAT_COUNTS.map((n) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = n;
+        b.dataset.seats = n;
+        b.setAttribute("aria-label", `${n} players`);
+        b.addEventListener("click", () => setSeats(n));
+        seatTicks.appendChild(b);
+        return b;
+      });
+
+      /* The long edge is a fraction of a sector, so its slider has to be
+         re-scaled when the seat count changes - 50 deg is a sensible long edge
+         out of 72, and nonsense out of 60. The default is always the tuned
+         pair in ARCS. */
+      const sectorSpan = () => 360 / seats; // degrees of board one seat owns
+
+      function rescaleArc() {
+        const span = sectorSpan();
+        arc.min = Math.round(span * 0.45);
+        arc.max = Math.round(span * 0.82);
+        arc.value = ARCS[seats].longArc;
+      }
+
+      function draw() {
+        const span = sectorSpan();
+        // boardConfig() picks the roster and squares the cells; the sliders
+        // ride on top of it, and shortArc is whatever is left of the sector so
+        // the outline always closes.
+        const cfg = boardConfig(seats, {
+          longArc: Number(arc.value),
+          shortArc: span - Number(arc.value),
+          frame: Number(frame.value),
+          padInset: Number(pad.max) - Number(pad.value),
+        });
+
+        renderFrame(svg, cfg);
+        renderSkeleton(svg, cfg);
+        renderTrack(svg, cfg);
+        renderTokens(svg, cfg);
+        const gd = svg.querySelector("#guides");
+        svg.appendChild(gd); // keep guides above the skeleton
+        gd.setAttribute("opacity", guides.checked ? 1 : 0);
+
+        const d = describe(cfg);
+        const cs = cellSize(cfg);
+        document.getElementById("f-points").textContent = d.points;
+        document.getElementById("f-long").textContent = d.longEdge.toFixed(0);
+        document.getElementById("f-short").textContent = d.shortEdge.toFixed(0);
+        document.getElementById("f-ratio").textContent = d.ratio.toFixed(2) + " : 1";
+        document.getElementById("f-cell").textContent =
+          cs.across.toFixed(1) + " x " + cs.along.toFixed(1);
+        document.getElementById("f-ring").textContent = ringCells(cfg).length + " cells";
+        document.getElementById("arc-val").textContent = arc.value + "°";
+        document.getElementById("frame-val").textContent = frame.value;
+        document.getElementById("pad-val").textContent = "band " + cfg.padInset;
+
+        document.getElementById("title-seats").textContent = seats;
+        /* game5.html and game6.html are the only playable pages, but either
+           one takes ?n=, so every board on the slider is playable. */
+        document.getElementById("play-link").href =
+          seats === 6 ? "game6.html" : seats === 5 ? "game5.html" : `game5.html?n=${seats}`;
+        document.title = `${seats}-Player Board`;
+        seatSlider.value = seats;
+        seatVal.textContent = `${seats} players`;
+        tickButtons.forEach((b) =>
+          b.setAttribute("aria-pressed", Number(b.dataset.seats) === seats ? "true" : "false"),
+        );
+      }
+
+      /* One way in for the seat count, from the slider or from a tick: the
+         long-edge slider has to be re-scaled before anything is drawn. */
+      function setSeats(n) {
+        if (!SEAT_COUNTS.includes(n) || n === seats) return;
+        seats = n;
+        rescaleArc();
+        draw();
+      }
+
+      seatSlider.addEventListener("input", () => setSeats(Number(seatSlider.value)));
+
+      [guides, arc, frame, pad].forEach((c) => c.addEventListener("input", draw));
+      rescaleArc();
+      draw();
+    </script>
+  </body>
+</html>

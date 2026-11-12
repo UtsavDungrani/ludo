@@ -1,50 +1,110 @@
-/* board5-geometry.js
+/* boardn-geometry.js
  * ---------------------------------------------------------------------------
- * Pure geometry for the 5-player Ludo board. No DOM, no rendering.
+ * Pure geometry for the polygonal Ludo boards. No DOM, no rendering.
  *
- * The whole board derives from one idea: ten points on a single circle,
- * with the arcs between them alternating long / short.
+ * One file serves every seat count. The whole board derives from one idea:
+ * 2n points on a single circle, with the arcs between them alternating
+ * long / short.
  *
- *   5 x (longArc + shortArc) = 360   ->  the outline always closes.
+ *   n x (longArc + shortArc) = 360   ->  the outline always closes.
  *
- * Each player owns one 72-degree sector. A sector is centred on a LONG edge
+ * Each player owns one 360/n sector. A sector is centred on a LONG edge
  * (the player's front edge, where their home base will sit); the SHORT edges
- * are the corner cuts where two neighbouring sectors meet.
+ * are the corner cuts where two neighbouring sectors meet. Five players give
+ * a decagon, six a dodecagon; nothing below is written for a fixed n.
+ *
+ * The roster lives on the config as `players`, and every angle is derived
+ * from its length, so adding a seat is a one-line change.
  * ---------------------------------------------------------------------------
  */
+
+/* Seats in board order, going clockwise on screen from the bottom.
+ *
+ * Colours are taken from the 4-player board, not invented. game.html uses the
+ * Tailwind classes bg-red-500 / bg-green-500 / bg-yellow-400 / bg-blue-500 for
+ * board areas, while main.css gives TOKENS their own saturated CSS colours.
+ * Purple follows the arrow_purple_5p.svg asset already in img/; orange is the
+ * sixth seat and has a matching arrow drawn the same way.
+ */
+export const ALL_PLAYERS = [
+  { id: "red",     name: "Red",     color: "#ef4444", token: "red" },
+  { id: "green",   name: "Green",   color: "#22c55e", token: "green" },
+  { id: "yellow",  name: "Yellow",  color: "#facc15", token: "rgb(221,221,72)" },
+  { id: "blue",    name: "Blue",    color: "#3b82f6", token: "blue" },
+  { id: "purple",  name: "Purple",  color: "#a855f7", token: "purple" },
+  { id: "orange",  name: "Orange",  color: "#f97316", token: "#f97316" },
+  { id: "cyan",    name: "Cyan",    color: "#06b6d4", token: "#06b6d4" },
+  { id: "magenta", name: "Magenta", color: "#db2777", token: "#db2777" },
+  { id: "lime",    name: "Lime",    color: "#84cc16", token: "#84cc16" },
+  { id: "slate",   name: "Slate",   color: "#64748b", token: "#64748b" },
+];
+
+/* Every id above starts with a different letter, and that is load-bearing:
+ * the engine names a home cell after its owner's initial (red -> rc1 .. rc5),
+ * the way the 4-player board does. Hence "magenta" and not "pink" - purple
+ * already owns p - and "slate" and not "brown", since blue owns b. */
+
+/** Seat counts this file lays out. */
+export const SEAT_COUNTS = [4, 5, 6, 7, 8, 9, 10];
+
+/** The first `n` seats, in board order. */
+export const playersFor = (n) => ALL_PLAYERS.slice(0, n);
+
+/** The 5-player roster, which is what CONFIG defaults to. */
+export const PLAYERS = playersFor(5);
+
+/**
+ * Long / short arc per seat count.
+ *
+ * The pair must sum to 360/n or the outline will not close, and the short arc
+ * has to stay wide enough for a 3-cell arm to fit across the corner cut it
+ * ends on - below that withSquareCells() has to clamp the arm and the track
+ * cells stop being square (see the clamp there for the exact limit, which is
+ * about 50.93 deg on five seats).
+ *
+ * Every pair below is the longest long edge that still sits inside that limit,
+ * rounded down to a whole degree, so every track cell on every board is
+ * exactly square:
+ *
+ *    4 x (67 + 23)      = 360        8 x (27 + 18) = 360
+ *    5 x (50 + 22)      = 360        9 x (23 + 17) = 360
+ *    6 x (40 + 20)      = 360       10 x (19 + 17) = 360
+ *    7 x (32 + 19.4286) = 360
+ *
+ * The long edge is a bit over twice the short one on the small boards and
+ * closes on it as seats are added. That is not a choice: an arm is 3 cells
+ * wide and 6 cells long whatever n is, so the corner cut it lands on cannot
+ * shrink along with the sector. By ten seats the outline is nearly a regular
+ * 20-gon, which is what square cells cost at that count.
+ */
+export const ARCS = {
+  4: { longArc: 67, shortArc: 23 },
+  5: { longArc: 50, shortArc: 22 },
+  6: { longArc: 40, shortArc: 20 },
+  7: { longArc: 32, shortArc: 360 / 7 - 32 },
+  8: { longArc: 27, shortArc: 18 },
+  9: { longArc: 23, shortArc: 17 },
+  10: { longArc: 19, shortArc: 17 },
+};
 
 export const CONFIG = {
   size: 1000,       // viewBox is 0 0 size size
   cx: 500,
   cy: 500,
   R: 470,           // circumradius - every outer point is this far from centre
-  longArc: 51,       // degrees spanned by a player's long (front) edge
-  shortArc: 21,      // degrees spanned by a corner cut (5 x (51 + 21) = 360)
-  frame: 0,          // the 4-player board has no frame band; yards reach the edge
+  ...ARCS[5],
+  frame: 0,         // the 4-player board has no frame band; yards reach the edge
   startAngle: 90,   // player 0 sits at the bottom of the screen (SVG y grows down)
+  players: PLAYERS, // the roster, and therefore the seat count
 };
-
-/* Players in board order, going clockwise on screen from the bottom. */
-/*
- * Colours are taken from the 4-player board, not invented. game.html uses the
- * Tailwind classes bg-red-500 / bg-green-500 / bg-yellow-400 / bg-blue-500 for
- * board areas, while main.css gives TOKENS their own saturated CSS colours.
- * Purple follows the arrow_purple_5p.svg asset already in img/.
- */
-export const PLAYERS = [
-  { id: "red",    name: "Red",    color: "#ef4444", token: "red" },
-  { id: "green",  name: "Green",  color: "#22c55e", token: "green" },
-  { id: "yellow", name: "Yellow", color: "#facc15", token: "rgb(221,221,72)" },
-  { id: "blue",   name: "Blue",   color: "#3b82f6", token: "blue" },
-  { id: "purple", name: "Purple", color: "#a855f7", token: "purple" },
-];
 
 /* The 4-player board is 600px across a 15-cell grid; these are its 1px / 2px
  * / 3px strokes expressed in this board's 1000-unit viewBox. */
 export const INK = "#000000";
 export const STROKE = { cell: 1.67, board: 1.67, yard: 3.33, token: 5 };
 
-export const SECTOR_ARC = 360 / PLAYERS.length; // 72 degrees per player
+/** Degrees of board one player owns: 72 on five seats, 60 on six. */
+export const sectorArc = (cfg = CONFIG) => 360 / cfg.players.length;
 
 /* --- primitives ---------------------------------------------------------- */
 
@@ -60,20 +120,20 @@ export function pointAt(angleDeg, radius, cfg = CONFIG) {
 
 /** Centre angle of player `i`'s sector (and of their long front edge). */
 export function sectorAngle(i, cfg = CONFIG) {
-  return cfg.startAngle + i * SECTOR_ARC;
+  return cfg.startAngle + i * sectorArc(cfg);
 }
 
 /* --- the outline --------------------------------------------------------- */
 
 /**
- * The 10 angles of the outline, in order.
+ * The 2n angles of the outline, in order.
  * Player i owns the long edge from (centre - longArc/2) to (centre + longArc/2);
  * the short edge that follows bridges to player i+1.
  */
 export function outlineAngles(cfg = CONFIG) {
   const half = cfg.longArc / 2;
   const out = [];
-  for (let i = 0; i < PLAYERS.length; i++) {
+  for (let i = 0; i < cfg.players.length; i++) {
     const c = sectorAngle(i, cfg);
     out.push({ angle: c - half, player: i, role: "long-start" });
     out.push({ angle: c + half, player: i, role: "long-end" });
@@ -81,7 +141,7 @@ export function outlineAngles(cfg = CONFIG) {
   return out;
 }
 
-/** The 10 outline points at a given radius (defaults to the board radius). */
+/** The 2n outline points at a given radius (defaults to the board radius). */
 export function outlinePoints(radius = CONFIG.R, cfg = CONFIG) {
   return outlineAngles(cfg).map((a) => ({
     ...pointAt(a.angle, radius, cfg),
@@ -89,7 +149,7 @@ export function outlinePoints(radius = CONFIG.R, cfg = CONFIG) {
   }));
 }
 
-/** The 10 edges, each tagged "long" (a player's front) or "short" (a corner). */
+/** The 2n edges, each tagged "long" (a player's front) or "short" (a corner). */
 export function outlineEdges(radius = CONFIG.R, cfg = CONFIG) {
   const pts = outlinePoints(radius, cfg);
   return pts.map((p, i) => {
@@ -177,11 +237,12 @@ export function offsetPolygon(points, t, cfg = CONFIG) {
 /* --- sanity check -------------------------------------------------------- */
 
 export function describe(cfg = CONFIG) {
-  const closes = PLAYERS.length * (cfg.longArc + cfg.shortArc);
+  const closes = cfg.players.length * (cfg.longArc + cfg.shortArc);
   const chord = (arc) => 2 * cfg.R * Math.sin(rad(arc) / 2);
   return {
+    seats: cfg.players.length,
     closes: Math.abs(closes - 360) < 1e-9,
-    points: 2 * PLAYERS.length,
+    points: 2 * cfg.players.length,
     longEdge: chord(cfg.longArc),
     shortEdge: chord(cfg.shortArc),
     ratio: chord(cfg.longArc) / chord(cfg.shortArc),
@@ -195,8 +256,7 @@ export function describe(cfg = CONFIG) {
  * player's yard sits in a corner and their home column runs down the middle of
  * the arm beside it - yard and arm are half a quadrant apart. Here the yard
  * sits on the player's LONG edge and the arm runs out to the CORNER CUT, which
- * is half a sector (36 degrees) away. Same relationship, five-fold instead of
- * four.
+ * is half a sector away. Same relationship, n-fold instead of four.
  * ===========================================================================
  */
 
@@ -211,9 +271,9 @@ Object.assign(CONFIG, {
   columnDir: -1,     // arm on the low-angle side, so travel follows seating order
 });
 
-/** Direction of player i's arm: the midpoint of a corner cut, 36deg off-sector. */
+/** Direction of player i's arm: the corner cut half a sector off-centre. */
 export function columnAngle(i, cfg = CONFIG) {
-  return sectorAngle(i, cfg) + cfg.columnDir * (SECTOR_ARC / 2);
+  return sectorAngle(i, cfg) + cfg.columnDir * (sectorArc(cfg) / 2);
 }
 
 /** Distance from centre to the middle of a long edge (a yard's outer rim). */
@@ -227,11 +287,12 @@ export function shortApothem(cfg = CONFIG) {
 }
 
 /**
- * The central finish pentagon. Its faces are perpendicular to the arms, so
- * every arm meets it flush; its vertices point down the sector centres.
+ * The central finish polygon - a pentagon on five seats, a hexagon on six.
+ * Its faces are perpendicular to the arms, so every arm meets it flush; its
+ * vertices point down the sector centres.
  */
-export function centerPentagon(cfg = CONFIG) {
-  return PLAYERS.map((_, i) => pointAt(sectorAngle(i, cfg), cfg.centerR, cfg));
+export function centerPolygon(cfg = CONFIG) {
+  return cfg.players.map((_, i) => pointAt(sectorAngle(i, cfg), cfg.centerR, cfg));
 }
 
 /** The centre triangle player i's home column empties into. */
@@ -239,17 +300,17 @@ export function finishTriangle(i, cfg = CONFIG) {
   const a = columnAngle(i, cfg);
   return [
     { x: cfg.cx, y: cfg.cy },
-    pointAt(a - SECTOR_ARC / 2, cfg.centerR, cfg),
-    pointAt(a + SECTOR_ARC / 2, cfg.centerR, cfg),
+    pointAt(a - sectorArc(cfg) / 2, cfg.centerR, cfg),
+    pointAt(a + sectorArc(cfg) / 2, cfg.centerR, cfg),
   ];
 }
 
-/** Apothem of the centre pentagon - where an arm starts. */
+/** Apothem of the centre polygon - where an arm starts. */
 export function centerApothem(cfg = CONFIG) {
-  return cfg.centerR * Math.cos(rad(SECTOR_ARC / 2));
+  return cfg.centerR * Math.cos(rad(sectorArc(cfg) / 2));
 }
 
-/** Player i's arm: a rectangle from the centre pentagon out to its corner cut. */
+/** Player i's arm: a rectangle from the centre polygon out to its corner cut. */
 export function armQuad(i, cfg = CONFIG) {
   const a = columnAngle(i, cfg);
   const u = { x: Math.cos(rad(a)), y: Math.sin(rad(a)) };   // outward
@@ -289,7 +350,7 @@ export function yardQuad(i, cfg = CONFIG) {
   // half-width the arms leave free at a given depth, minus a gap
   const free = (r) => {
     const armAngular = Math.atan2(cfg.armHalf, r);          // arm's half-angle there
-    const room = rad(SECTOR_ARC / 2) - armAngular;          // angle left to the sector edge
+    const room = rad(sectorArc(cfg) / 2) - armAngular;      // angle left to the sector edge
     return Math.max(12, r * Math.tan(room) - cfg.gap);
   };
 
@@ -318,9 +379,9 @@ export function armEdges(i, cfg = CONFIG) {
  * arms the way they do on a real board.
  */
 export function yardRegion(i, cfg = CONFIG) {
-  const n = PLAYERS.length;
+  const n = cfg.players.length;
   const inner = offsetPolygon(outlinePoints(cfg.R, cfg), cfg.frame, cfg);
-  const pent = centerPentagon(cfg);
+  const pent = centerPolygon(cfg);
   const armAt = (want) => {
     let best = 0, bestD = Infinity;
     for (let j = 0; j < n; j++) {
@@ -329,8 +390,8 @@ export function yardRegion(i, cfg = CONFIG) {
     }
     return armEdges(best, cfg);
   };
-  const armNext = armAt(sectorAngle(i, cfg) + SECTOR_ARC / 2); // higher-angle side
-  const armPrev = armAt(sectorAngle(i, cfg) - SECTOR_ARC / 2); // lower-angle side
+  const armNext = armAt(sectorAngle(i, cfg) + sectorArc(cfg) / 2); // higher-angle side
+  const armPrev = armAt(sectorAngle(i, cfg) - sectorArc(cfg) / 2); // lower-angle side
 
   return dedupe([
     inner[2 * i],       // long edge, start
@@ -348,7 +409,7 @@ export function yardRegion(i, cfg = CONFIG) {
  *
  * Generalised from the project's own 4-player model in game-state.js, where
  * red starts at c1 and green at c14 - 13 ring cells per player, then 5 home
- * cells. Five players gives a 65-cell ring.
+ * cells. Five players gives a 65-cell ring, six a 78-cell one.
  *
  * Each arm is 3 lanes wide and 6 cells long:
  *   - the two flanking lanes are track (6 + 6)
@@ -393,10 +454,10 @@ export function cellQuad(i, lane, k, cfg = CONFIG) {
 
 /** The arm reached next when travelling along the ring. */
 function nextArm(i, cfg = CONFIG) {
-  const want = columnAngle(i, cfg) + yardSide(i, cfg) * SECTOR_ARC;
+  const want = columnAngle(i, cfg) + yardSide(i, cfg) * sectorArc(cfg);
   let best = 0;
   let bestD = Infinity;
-  for (let j = 0; j < PLAYERS.length; j++) {
+  for (let j = 0; j < cfg.players.length; j++) {
     const d = Math.abs(((columnAngle(j, cfg) - want + 540) % 360) - 180);
     if (d < bestD) { bestD = d; best = j; }
   }
@@ -404,13 +465,13 @@ function nextArm(i, cfg = CONFIG) {
 }
 
 /**
- * The 65-cell ring, in travel order, rotated so player 0's start cell is
+ * The 13n-cell ring, in travel order, rotated so player 0's start cell is
  * index 0 - matching the c1/c14 numbering the 4-player game already uses.
  */
 export function ringCells(cfg = CONFIG) {
   const cells = [];
   let arm = 0;
-  for (let n = 0; n < PLAYERS.length; n++) {
+  for (let n = 0; n < cfg.players.length; n++) {
     const ys = yardSide(arm, cfg);
     for (let k = 0; k < CELLS_ALONG_ARM; k++) cells.push({ arm, lane: -ys, k });      // away from yard, outward
     cells.push({ arm, lane: 0, k: CELLS_ALONG_ARM - 1 });                              // the tip
@@ -429,7 +490,7 @@ export function ringCells(cfg = CONFIG) {
 /** Ring index of each player's start cell. */
 export function startIndices(cfg = CONFIG) {
   const ring = ringCells(cfg);
-  return PLAYERS.map((_, i) =>
+  return cfg.players.map((_, i) =>
     ring.findIndex(
       (c) => c.arm === i && c.lane === yardSide(i, cfg) && c.k === CELLS_ALONG_ARM - 2
     )
@@ -439,7 +500,7 @@ export function startIndices(cfg = CONFIG) {
 /** Ring index of each player's home-column entrance (their arm's tip cell). */
 export function entryIndices(cfg = CONFIG) {
   const ring = ringCells(cfg);
-  return PLAYERS.map((_, i) =>
+  return cfg.players.map((_, i) =>
     ring.findIndex((c) => c.arm === i && c.lane === 0 && c.k === CELLS_ALONG_ARM - 1)
   );
 }
@@ -489,11 +550,11 @@ const polyCentroid = (pts) =>
 
 /**
  * The yard read as a triangle: the two ends of the player's long edge, plus
- * the centre pentagon's vertex. This is the shape the tokens arrange inside.
+ * the centre polygon's vertex. This is the shape the tokens arrange inside.
  */
 export function yardTriangle(i, cfg = CONFIG) {
   const inner = offsetPolygon(outlinePoints(cfg.R, cfg), cfg.frame, cfg);
-  const pent = centerPentagon(cfg);
+  const pent = centerPolygon(cfg);
   return [inner[2 * i], inner[2 * i + 1], pent[i]];
 }
 
@@ -582,16 +643,19 @@ export function tokenSpots(i, cfg = CONFIG) {
 
 /** Fill in armHalf / centerR / cell so that every track cell is square. */
 export function withSquareCells(base = CONFIG) {
-  const n = PLAYERS.length;
+  const n = base.players.length;
   const half = Math.PI / n;
   const rim = base.R * Math.cos(rad(base.shortArc / 2)) - base.frame; // shortApothem
   const cell = rim / (CELLS_ALONG_ARM + 1.5 / Math.tan(half));
 
   // An arm ends at a corner cut, so it can never be wider than the cut is
-  // there. Both scale with the rim, so the limit is a pure ratio: a long edge
-  // beyond about 50.93 deg leaves too little corner for a 3-cell arm. Past
-  // that we clamp so the arm lands exactly on the board's vertices rather
-  // than poking through; cells go a fraction wider than tall instead.
+  // there. Both scale with the rim, so the limit is a pure ratio, and it only
+  // depends on the seat count: the short arc has to clear
+  // 2 * atan(1.5 / (CELLS_ALONG_ARM + 1.5 * cot(pi/n))), which is 19.07 deg on
+  // five seats (so a long edge past 50.93) and 19.81 on six. Both pairs in
+  // ARCS sit inside it. Past it we clamp, so the arm lands exactly on the
+  // board's vertices rather than poking through, and cells go a fraction
+  // wider than tall instead.
   const room = rim * Math.tan(rad(base.shortArc / 2));
   const armHalf = Math.min(1.5 * cell, room);
   return {
@@ -610,4 +674,30 @@ export function cellSize(cfg = CONFIG) {
     across: (2 * cfg.armHalf) / 3,
     along: (r1 - r0) / CELLS_ALONG_ARM,
   };
+}
+
+/* ===========================================================================
+ * The one call a page needs.
+ * ===========================================================================
+ */
+
+/**
+ * A ready-to-draw config for `n` players: the right roster, the arc pair that
+ * closes the outline for that count, and square track cells.
+ *
+ * `over` lets a page tweak anything on top (the design sliders pass their own
+ * arcs), and it is applied before the cells are squared so the derived values
+ * always match what was asked for.
+ */
+export function boardConfig(n = 5, over = {}) {
+  const seats = Number(n);
+  if (!ARCS[seats]) {
+    throw new Error(`No arc pair for ${n} players; known: ${Object.keys(ARCS).join(", ")}`);
+  }
+  return withSquareCells({
+    ...CONFIG,
+    players: playersFor(seats),
+    ...ARCS[seats],
+    ...over,
+  });
 }

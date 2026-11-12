@@ -23,6 +23,17 @@
       ],
       "port": 8915,
       "autoPort": false
+    },
+    {
+      "name": "ludo-v3-dist-alt",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-u",
+        "D:/Projects/ludo/ludo v3/dev-server.py",
+        "8916"
+      ],
+      "port": 8916,
+      "autoPort": true
     }
   ]
 }

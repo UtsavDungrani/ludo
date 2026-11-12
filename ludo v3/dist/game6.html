@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>6-Player Game Board</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="main.css" />
+    <link rel="stylesheet" href="board-poly.css" />
+    <link rel="icon" type="image/x-icon" href="../img/favico2.png" />
+  </head>
+  <!-- data-players is the only thing that makes this the 6-player board;
+       game5.html is the same page with a 5. ?n=5 overrides it. -->
+  <body data-players="6">
+    <div class="table">
+      <div class="stage"><svg id="board"></svg></div>
+
+      <div class="panel" id="dice_con">
+        <div id="currentPlayer">Player Red's turn</div>
+
+        <div id="dice" class="dice">
+          <div class="face front" data-value="1" aria-label="1">
+            <span class="pip"></span>
+          </div>
+          <div class="face back" data-value="2" aria-label="2">
+            <span class="pip"></span><span class="pip"></span>
+          </div>
+          <div class="face left" data-value="3" aria-label="3">
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+          </div>
+          <div class="face right" data-value="4" aria-label="4">
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+            <span class="pip"></span>
+          </div>
+          <div class="face bottom" data-value="5" aria-label="5">
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+            <span class="pip"></span><span class="pip"></span>
+          </div>
+          <div class="face top" data-value="6" aria-label="6">
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+          </div>
+        </div>
+
+        <button id="rollButton">Roll Dice</button>
+        <ol id="standings"></ol>
+        <button id="resetButton">New game</button>
+      </div>
+    </div>
+
+    <script type="module" src="js/boardn-game.js"></script>
+  </body>
+</html>

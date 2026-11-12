@@ -1,16 +1,17 @@
-/* board5-game.js
+/* boardn-game.js
  * ---------------------------------------------------------------------------
- * The page controller for the 5-player board: draws it, runs a game on it, and
- * keeps the two in step.
+ * The page controller for a polygonal board: draws it, runs a game on it, and
+ * keeps the two in step. game5.html and game6.html both load this file; the
+ * only difference between them is the seat count they declare.
  *
  * It is the counterpart of script.js + game-ui.js for the 4-player board, but
- * the split is different. There the DOM is the state; here board5-engine.js
+ * the split is different. There the DOM is the state; here boardn-engine.js
  * holds the state and this file only ever reflects it, so every redraw is
  * "ask the engine where things are, put them there".
  * ---------------------------------------------------------------------------
  */
 
-import { CONFIG, PLAYERS, withSquareCells } from "./board5-geometry.js";
+import { boardConfig, SEAT_COUNTS } from "./boardn-geometry.js";
 import {
   renderFrame,
   renderSkeleton,
@@ -19,9 +20,9 @@ import {
   placeTokens,
   trackPoints,
   yardPoints,
-} from "./board5-render.js";
-import { createGame } from "./board5-engine.js";
-import { setupDebug5 } from "./board5-debug.js";
+} from "./boardn-render.js";
+import { createGame } from "./boardn-engine.js";
+import { setupDebugN } from "./boardn-debug.js";
 
 const STEP_MS = 170; // one cell of travel
 const BEAT_MS = 420; // pause after a move before the turn moves on
@@ -32,16 +33,33 @@ const diceFace = document.getElementById("dice");
 const rollButton = document.getElementById("rollButton");
 const standingsBox = document.getElementById("standings");
 
-const cfg = withSquareCells(CONFIG);
+/* How many sides the board has. The page says so with data-players on <body>,
+   and ?n= overrides it, so one file can be opened as any of the boards - which
+   is how boardn.html links to the counts that have no page of their own. The
+   fallback is 5 rather than SEAT_COUNTS[0], so a page that declares nothing
+   keeps the board it has always drawn. */
+function seatCount() {
+  const fromQuery = Number(new URLSearchParams(location.search).get("n"));
+  const fromPage = Number(document.body.dataset.players);
+  const want = SEAT_COUNTS.includes(fromQuery)
+    ? fromQuery
+    : SEAT_COUNTS.includes(fromPage)
+      ? fromPage
+      : 5;
+  return want;
+}
 
-/* Seats come from the setup page; with nothing stored, all five play. */
+const cfg = boardConfig(seatCount());
+const roster = cfg.players;
+
+/* Seats come from the setup page; with nothing stored, every side plays. */
 const storedNames = JSON.parse(localStorage.getItem("playerNames") || "{}");
-const known = PLAYERS.map((p) => p.id);
+const known = roster.map((p) => p.id);
 const seated = known.filter((c) => storedNames[c]);
 const seats = seated.length >= 2 ? seated : known;
 
 const game = createGame({ cfg, colors: seats, names: storedNames });
-const colorOf = (id) => PLAYERS.find((p) => p.id === id);
+const colorOf = (id) => roster.find((p) => p.id === id);
 
 let cache = {};
 let busy = false;
@@ -55,7 +73,7 @@ function drawBoard() {
   renderTokens(svg, cfg);
   cache = { points: trackPoints(cfg), yard: yardPoints(cfg) };
 
-  PLAYERS.forEach((p) => {
+  roster.forEach((p) => {
     const plate = svg.querySelector(`[data-label="${p.id}"]`);
     if (plate) {
       const label = plate.querySelector("text");
@@ -70,6 +88,10 @@ function drawBoard() {
     }
     const yard = svg.querySelector(`[data-yard="${p.id}"]`);
     if (yard && !sitting) yard.setAttribute("opacity", 0.35);
+
+    // An empty seat should not advertise four empty waiting spots.
+    const slots = svg.querySelector(`[data-slots="${p.id}"]`);
+    if (slots) slots.style.display = sitting ? "" : "none";
   });
 }
 
@@ -313,5 +335,6 @@ const ctx = {
   endGame,
 };
 
-window.ludo5 = ctx;
-setupDebug5(ctx);
+window.ludo = ctx;
+window.ludo5 = ctx; // the name the 5-player page has always used
+setupDebugN(ctx);

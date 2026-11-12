@@ -7,9 +7,14 @@ const colorSelectionDiv = document.getElementById("colorSelection");
 let selectedColors = [];
 let playerCount = 0;
 
-// Seating order, and the order board5-geometry.js lays the five sectors out
-// in, so the 5-player board's yards line up with the names entered here.
-const SEAT_COLORS = ["red", "green", "yellow", "blue", "purple"];
+// Seating order, and the order boardn-geometry.js lays its sectors out in, so
+// the polygonal boards' yards line up with the names entered here. The first
+// four are also the 4-player board's corners.
+const SEAT_COLORS = ["red", "green", "yellow", "blue", "purple", "orange"];
+
+// Seat counts that get a polygonal board of their own; anything less fits the
+// square 4-player one.
+const POLY_BOARDS = [5, 6];
 
 function getDefaultColors(count) {
   return SEAT_COLORS.slice(0, count);
@@ -99,6 +104,9 @@ gameSetupForm.addEventListener("submit", (event) => {
   localStorage.setItem("playerNames", JSON.stringify(playerNames));
   localStorage.setItem("selectedColors", JSON.stringify(selectedColors));
 
-  // Five players need the decagon board; two to four fit the square one.
-  window.location.href = playerCount === 5 ? "game5.html" : "game.html";
+  // Five players need the decagon board and six the dodecagon; two to four fit
+  // the square one.
+  window.location.href = POLY_BOARDS.includes(playerCount)
+    ? `game${playerCount}.html`
+    : "game.html";
 });

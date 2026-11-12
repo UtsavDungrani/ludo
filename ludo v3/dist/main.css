@@ -186,6 +186,22 @@
   z-index: 1;
   background-image: url(../img/star.svg);
   background-position: center;
+  /* Tokens move by being reparented into another cell, which a transition
+     cannot follow on its own - game-animate.js does the FLIP that makes this
+     transition apply. It also covers the scale change when a token joins or
+     leaves a stack, so re-stacking eases instead of snapping. */
+  transition: transform 170ms linear;
+}
+
+/* A token in flight sits outside its destination cell for the length of the
+   trip, and .cell clips to its own square. Opened up only while something is
+   actually travelling, so nothing else about the board changes. */
+.cell.animating {
+  overflow: visible;
+  z-index: 5;
+}
+.token.moving {
+  z-index: 4;
 }
 .token-red {
   background-color: red;
@@ -231,31 +247,56 @@
   grid-column: 2;
 }
 
-/* Tokens the current player may pick this turn */
+/* Tokens the current player may pick this turn.
+
+   The 5-player board marks these with white dashes crawling round the token's
+   edge - stroke-dasharray plus a moving stroke-dashoffset on the SVG circle.
+   A DOM token is a <button> with a border and no stroke to dash, so the same
+   effect is built a different way: a conic-gradient of white segments, masked
+   down to a ring that sits exactly over the token's own border, and turned.
+   The gradient repeats every 28deg, so a single 28deg rotation returns an
+   identical image and the loop is seamless. */
 .token.selectable {
   cursor: pointer;
   z-index: 3;
-  box-shadow:
-    0 0 0 3px #fff,
-    0 0 0 6px #111827;
-  animation: token-selectable-pulse 1s ease-in-out infinite alternate;
 }
-.token.selectable:hover {
-  box-shadow:
-    0 0 0 3px #fff,
-    0 0 0 7px #111827;
+.token.selectable::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    #fff 0deg 14deg,
+    rgba(255, 255, 255, 0) 14deg 28deg
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    rgba(0, 0, 0, 0) calc(100% - var(--token-ring, 3px)),
+    #000 calc(100% - var(--token-ring, 3px))
+  );
+  mask: radial-gradient(
+    farthest-side,
+    rgba(0, 0, 0, 0) calc(100% - var(--token-ring, 3px)),
+    #000 calc(100% - var(--token-ring, 3px))
+  );
+  animation: token-ring-crawl 1.4s linear infinite;
+  pointer-events: none;
 }
-@keyframes token-selectable-pulse {
-  from {
-    filter: brightness(1);
-  }
+.token.selectable:hover::after {
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.9));
+}
+@keyframes token-ring-crawl {
   to {
-    filter: brightness(1.35);
+    transform: rotate(28deg);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .token.selectable {
+  .token.selectable::after {
     animation: none;
+  }
+  /* game-animate.js also skips the FLIP, so tokens step rather than glide. */
+  .token {
+    transition: none;
   }
 }
 
@@ -495,6 +536,8 @@
     margin-left: 15px;
     background-size: 24px;
     border: 2px solid black;
+   /* keeps the crawling selection ring on top of the thinner border */
+    --token-ring: 2px;
   }
 
   /* Home */
@@ -614,6 +657,8 @@
     margin-left: 20px;
     background-size: 32px;
     border: 2px solid black;
+   /* keeps the crawling selection ring on top of the thinner border */
+    --token-ring: 2px;
   }
 
   /* Home */

@@ -1,6 +1,6 @@
-/* board5-debug.js
+/* boardn-debug.js
  * ---------------------------------------------------------------------------
- * The 5-player counterpart of game-debug.js.
+ * The polygonal-board counterpart of game-debug.js, for 5 and 6 seats alike.
  *
  * Same contract as the 4-player board: a `window.LudoDebug` console object, the
  * `?debug=1` switch, the "Ludo Debug" pill, and the choice remembered under the
@@ -9,15 +9,13 @@
  * The commands differ where the boards do. There is no placeTokenDirect that
  * reparents a div here; a token is placed by telling the engine where it is and
  * redrawing. Added on top: `labels()`, which writes the cell numbers onto the
- * board, because a 65-cell ring is hard to read off a screenshot.
+ * board, because a 65- or 78-cell ring is hard to read off a screenshot.
  * ---------------------------------------------------------------------------
  */
 
-import { PLAYERS } from "./board5-geometry.js";
-
 const STORAGE_KEY = "ludo-debug-enabled";
 
-function setDebugMode(enabled, persist = true) {
+function setDebugMode(enabled, seats, persist = true) {
   if (persist) {
     localStorage.setItem(STORAGE_KEY, enabled ? "1" : "0");
   }
@@ -29,7 +27,7 @@ function setDebugMode(enabled, persist = true) {
 
   const pill = document.createElement("div");
   pill.id = "ludo-debug-marker";
-  pill.textContent = "Ludo Debug (5p)";
+  pill.textContent = `Ludo Debug (${seats}p)`;
   Object.assign(pill.style, {
     position: "fixed",
     bottom: "12px",
@@ -48,8 +46,9 @@ function setDebugMode(enabled, persist = true) {
  * `ctx` is the live controller: the engine plus the few functions that drive
  * the page, so debug commands go through exactly the same code a click does.
  */
-export function setupDebug5(ctx) {
+export function setupDebugN(ctx) {
   const { game, svg, cfg, refresh, play, roll, flash, showStandings, startTurn } = ctx;
+  const seats = cfg.players.length;
 
   const ordinal = (n) => `${n}${["st", "nd", "rd", "th", "th"][n - 1] || "th"}`;
   const lastIndex = (color) => game.pathOf(color).length - 1;
@@ -112,10 +111,10 @@ export function setupDebug5(ctx) {
 
   const scenarios = {
     /** n tokens of different colours on one cell, to check the fan-out. */
-    overlap(n = 5, cell = "c22") {
+    overlap(n = seats, cell = "c22") {
       clearBoard();
       const placed = [];
-      PLAYERS.slice(0, n).forEach((p, i) => {
+      cfg.players.slice(0, n).forEach((p, i) => {
         const r = place(`token-${p.id}-${i + 1}`, cell);
         if (r.ok) placed.push(r.token);
       });
@@ -262,11 +261,16 @@ export function setupDebug5(ctx) {
       console.log("LudoDebug:", Object.keys(window.LudoDebug).join(", "));
       console.log("LudoDebug.dice:", Object.keys(dice).join(", "));
       console.log("LudoDebug.scenarios:", Object.keys(scenarios).join(", "));
-      console.log("Board: 65 ring cells c1..c65, home columns rc1..rc5 / gc / yc / bc / pc.");
+      console.log(
+        `Board: ${seats} seats, ${game.track.ringLength} ring cells ` +
+          `c1..c${game.track.ringLength}, home columns ` +
+          cfg.players.map((p) => `${p.id[0]}c1..${p.id[0]}c5`).join(" / ") +
+          ".",
+      );
       console.log("Try: LudoDebug.labels(true), LudoDebug.scenarios.captureTest()");
     },
     toggle(enabled = localStorage.getItem(STORAGE_KEY) !== "1") {
-      setDebugMode(enabled, true);
+      setDebugMode(enabled, seats, true);
       return { debug: enabled };
     },
     status() {
@@ -330,11 +334,11 @@ export function setupDebug5(ctx) {
   const enable = fromQuery ?? stored;
 
   if (enable) {
-    setDebugMode(true, fromQuery === null);
-    console.info("Ludo debug mode enabled (5-player). Run LudoDebug.help().");
+    setDebugMode(true, seats, fromQuery === null);
+    console.info(`Ludo debug mode enabled (${seats}-player). Run LudoDebug.help().`);
     window.LudoDebug.help();
   } else if (fromQuery === false) {
-    setDebugMode(false, false);
+    setDebugMode(false, seats, false);
     console.info("Ludo debug mode disabled via ?debug=0");
   }
 }

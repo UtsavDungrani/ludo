@@ -16,6 +16,7 @@ import {
 } from "./game-ui.js";
 import { checkWinCondition, handleNextTurn } from "./game-flow.js";
 import { isSafeCell, updateCellClasses } from "./game-ui.js";
+import { flip, STEP_MS } from "./game-animate.js";
 
 // Base orientation that brings the wanted face to the front.
 const DICE_FACE_ROTATIONS = {
@@ -164,9 +165,11 @@ function moveTokenCellByCell(tokenId, color, start, end, current, callback) {
   const currentCell = path[start + current];
   moveToken(tokenId, currentCell);
 
+  // 500ms per cell was paced for a token that jumped between squares. Now
+  // that it travels between them, STEP_MS matches the 5-player board.
   setTimeout(() => {
     moveTokenCellByCell(tokenId, color, start, end, current + 1, callback);
-  }, 500);
+  }, STEP_MS);
 }
 
 function checkCollision(tokenId, color, cellId) {
@@ -216,20 +219,25 @@ function sendTokenHome(tokenId) {
     return;
   }
 
-  token.parentNode.removeChild(token);
-  homeContainer.appendChild(token);
-  applyYardSlot(tokenId);
+  // A capture is worth seeing, so the token flies back to its yard instead
+  // of vanishing from one place and reappearing in another.
+  flip(tokenId, () => {
+    token.parentNode.removeChild(token);
+    homeContainer.appendChild(token);
+    applyYardSlot(tokenId);
 
-  token.style.transform = "";
-  token.style.margin = "";
-  token.style.position = "relative";
-  token.style.left = "";
-  token.style.top = "";
-  token.style.transformOrigin = "";
-  token.style.margin = window.innerWidth < 768 ? "15px" : "19px";
+    token.style.transform = "";
+    token.style.margin = "";
+    token.style.position = "relative";
+    token.style.left = "";
+    token.style.top = "";
+    token.style.transformOrigin = "";
+    token.style.margin = window.innerWidth < 768 ? "15px" : "19px";
+
+    updateCellClasses();
+  });
 
   TOKEN_POSITIONS[color][tokenId] = -1;
-  updateCellClasses();
 }
 
 function getAllTokenIds() {
@@ -245,10 +253,13 @@ function placeTokenDirect(tokenId, cellId) {
   const cell = document.getElementById(cellId);
 
   if (token && cell) {
-    token.parentNode.removeChild(token);
-    cell.appendChild(token);
-    clearYardSlot(tokenId);
-    token.style.margin = "0";
+    flip(tokenId, () => {
+      token.parentNode.removeChild(token);
+      cell.appendChild(token);
+      clearYardSlot(tokenId);
+      token.style.margin = "0";
+      updateCellClasses();
+    });
     TOKEN_POSITIONS[getTokenColor(tokenId)][tokenId] =
       PATHS[getTokenColor(tokenId)].indexOf(cellId);
   }
@@ -261,15 +272,17 @@ function resetAllTokensToHome() {
     const token = document.getElementById(tokenId);
 
     if (token && homeContainer) {
-      token.parentNode.removeChild(token);
-      homeContainer.appendChild(token);
-      applyYardSlot(tokenId);
-      token.style.transform = "";
-      token.style.margin = window.innerWidth < 768 ? "15px" : "19px";
-      token.style.position = "relative";
-      token.style.left = "";
-      token.style.top = "";
-      token.style.transformOrigin = "";
+      flip(tokenId, () => {
+        token.parentNode.removeChild(token);
+        homeContainer.appendChild(token);
+        applyYardSlot(tokenId);
+        token.style.transform = "";
+        token.style.margin = window.innerWidth < 768 ? "15px" : "19px";
+        token.style.position = "relative";
+        token.style.left = "";
+        token.style.top = "";
+        token.style.transformOrigin = "";
+      });
       TOKEN_POSITIONS[color][tokenId] = -1;
     }
   });

@@ -8,6 +8,7 @@ import {
   getNextActivePlayer,
   getPlayerName,
 } from "./game-state.js";
+import { flip } from "./game-animate.js";
 
 const diceButton = document.getElementById("rollButton");
 const diceContainer = document.getElementById("dice_con");
@@ -66,11 +67,15 @@ function moveToken(tokenId, cellId) {
   const cell = document.getElementById(cellId);
 
   if (token && cell) {
-    token.parentNode.removeChild(token);
-    cell.appendChild(token);
-    clearYardSlot(tokenId);
-    token.style.margin = "0";
-    updateCellClasses();
+    // The move itself is unchanged; flip() only measures either side of it and
+    // animates the difference, so the token glides instead of teleporting.
+    flip(tokenId, () => {
+      token.parentNode.removeChild(token);
+      cell.appendChild(token);
+      clearYardSlot(tokenId);
+      token.style.margin = "0";
+      updateCellClasses();
+    });
   }
 }
 
@@ -169,13 +174,29 @@ function showTemporaryMessage(message) {
     messageContainer.style.borderRadius = "12px";
     messageContainer.style.whiteSpace = "pre-line";
     messageContainer.style.boxShadow = "0 12px 32px rgba(0, 0, 0, 0.25)";
+    messageContainer.style.pointerEvents = "none";
+    // Fades and drops in rather than appearing, matching the 5-player toast.
+    messageContainer.style.opacity = "0";
+    messageContainer.style.transform = "translateX(-50%) translateY(-16px)";
+    messageContainer.style.transition = "opacity 180ms ease, transform 180ms ease";
     document.body.appendChild(messageContainer);
   }
 
   messageContainer.textContent = message;
+
+  // A message arriving while one is already up restarts the entrance, so two
+  // in a row still read as two.
   clearTimeout(messageContainer._hideTimer);
+  clearTimeout(messageContainer._dropTimer);
+  messageContainer._dropTimer = setTimeout(() => {
+    messageContainer.style.opacity = "1";
+    messageContainer.style.transform = "translateX(-50%) translateY(0)";
+  }, 10);
+
   messageContainer._hideTimer = setTimeout(() => {
-    messageContainer.remove();
+    messageContainer.style.opacity = "0";
+    messageContainer.style.transform = "translateX(-50%) translateY(-16px)";
+    setTimeout(() => messageContainer.remove(), 220);
   }, 2500);
 }
 
