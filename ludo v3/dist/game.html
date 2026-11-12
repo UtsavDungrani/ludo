@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -104,10 +104,27 @@
           </div>
           <!-- Center -->
           <div class="center" id="center">
-            <div class="triangle bg-red-500" id="red_home"></div>
-            <div class="triangle bg-green-500" id="green_home"></div>
-            <div class="triangle bg-yellow-400" id="yellow_home"></div>
-            <div class="triangle bg-blue-500" id="blue_home"></div>
+            <svg
+              class="center-outline"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path d="M0,0 L100,100" />
+              <path d="M100,0 L0,100" />
+            </svg>
+            <div class="triangle bg-red-500" id="red_home">
+              <svg class="triangle-outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="triangle-edge-outer" d="M0,100 H100" /></svg>
+            </div>
+            <div class="triangle bg-green-500" id="green_home">
+              <svg class="triangle-outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="triangle-edge-outer" d="M0,100 H100" /></svg>
+            </div>
+            <div class="triangle bg-yellow-400" id="yellow_home">
+              <svg class="triangle-outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="triangle-edge-outer" d="M0,100 H100" /></svg>
+            </div>
+            <div class="triangle bg-blue-500" id="blue_home">
+              <svg class="triangle-outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="triangle-edge-outer" d="M0,100 H100" /></svg>
+            </div>
           </div>
           <!-- Rest of the board cells -->
 
@@ -455,102 +472,53 @@
             ></div>
           </div>
         </div>
-        <!-- Dice for red player -->
-        <div class="flex flex-col items-center -mt-8 ml-64" id="dice_con_red">
+        <!-- Shared dice for all players -->
+        <!-- hidden removed from class-->
+        <!-- <div class="flex flex-col items-center hidden mt-8" id="dice_con"></div> -->
+        <div class="flex flex-col items-center mt-8" id="dice_con">
           <div
-            id="currentPlayerred"
+            id="currentPlayer"
             class="mt-8 px-4 py-2 bg-blue-500 text-white font-bold rounded text-sm"
           >
             Player Red's turn
           </div>
-          <div id="dicered" class="dice mt-8">
-            <div class="face front">1</div>
-            <div class="face back">2</div>
-            <div class="face left">3</div>
-            <div class="face right">4</div>
-            <div class="face bottom">5</div>
-            <div class="face top">6</div>
+          <div id="dice" class="dice mt-8">
+            <div class="face front" data-value="1" aria-label="1">
+              <span class="pip"></span>
+            </div>
+            <div class="face back" data-value="2" aria-label="2">
+              <span class="pip"></span>
+              <span class="pip"></span>
+            </div>
+            <div class="face left" data-value="3" aria-label="3">
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+            </div>
+            <div class="face right" data-value="4" aria-label="4">
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+            </div>
+            <div class="face bottom" data-value="5" aria-label="5">
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+            </div>
+            <div class="face top" data-value="6" aria-label="6">
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+            </div>
           </div>
           <button
-            id="rollButtonred"
-            class="mt-8 px-4 py-2 bg-blue-500 text-white font-bold rounded text-sm"
-          >
-            Roll Dice
-          </button>
-        </div>
-        <!-- Dice for green player -->
-        <div
-          class="flex flex-col items-center hidden -mt-8 -ml-64"
-          id="dice_con_green"
-        >
-          <div
-            id="currentPlayergreen"
-            class="mt-8 px-4 py-2 bg-blue-500 text-white font-bold rounded text-sm"
-          >
-            Player Green's turn
-          </div>
-          <div id="dicegreen" class="dice mt-8">
-            <div class="face front">1</div>
-            <div class="face back">2</div>
-            <div class="face left">3</div>
-            <div class="face right">4</div>
-            <div class="face bottom">5</div>
-            <div class="face top">6</div>
-          </div>
-          <button
-            id="rollButtongreen"
-            class="mt-8 px-4 py-2 bg-blue-500 text-white font-bold rounded text-sm"
-          >
-            Roll Dice
-          </button>
-        </div>
-        <!-- Dice for yellow player -->
-        <div
-          class="flex flex-col items-center hidden mt-3 -ml-64"
-          id="dice_con_yellow"
-        >
-          <div
-            id="currentPlayeryellow"
-            class="mt-8 px-4 py-2 bg-blue-500 text-white font-bold rounded text-sm"
-          >
-            Player Yellow's turn
-          </div>
-          <div id="diceyellow" class="dice mt-8">
-            <div class="face front">1</div>
-            <div class="face back">2</div>
-            <div class="face left">3</div>
-            <div class="face right">4</div>
-            <div class="face bottom">5</div>
-            <div class="face top">6</div>
-          </div>
-          <button
-            id="rollButtonyellow"
-            class="mt-8 px-4 py-2 bg-blue-500 text-white font-bold rounded text-sm"
-          >
-            Roll Dice
-          </button>
-        </div>
-        <!-- Dice for blue player -->
-        <div
-          class="flex flex-col items-center hidden mt-3 ml-64"
-          id="dice_con_blue"
-        >
-          <div
-            id="currentPlayerblue"
-            class="mt-8 px-4 py-2 bg-blue-500 text-white font-bold rounded text-sm"
-          >
-            Player Blue's turn
-          </div>
-          <div id="diceblue" class="dice mt-8">
-            <div class="face front">1</div>
-            <div class="face back">2</div>
-            <div class="face left">3</div>
-            <div class="face right">4</div>
-            <div class="face bottom">5</div>
-            <div class="face top">6</div>
-          </div>
-          <button
-            id="rollButtonblue"
+            id="rollButton"
             class="mt-8 px-4 py-2 bg-blue-500 text-white font-bold rounded text-sm"
           >
             Roll Dice
@@ -558,6 +526,6 @@
         </div>
       </div>
     </div>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
   </body>
 </html>
