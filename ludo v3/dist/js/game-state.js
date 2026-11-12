@@ -251,10 +251,24 @@ const PATHS = {
   ],
 };
 
+// Swatches for the turn banner, matching each player's home on the board.
+const PLAYER_COLORS = {
+  red: "#ef4444",
+  green: "#22c55e",
+  yellow: "#facc15",
+  blue: "#3b82f6",
+};
+
 const SAFE_CELLS = ["c1", "c14", "c27", "c40", "c9", "c22", "c35", "c48"];
 
 const PLAYER_NAMES = JSON.parse(localStorage.getItem("playerNames") || "{}");
-const ACTIVE_COLORS = Object.keys(PLAYER_NAMES);
+
+// The setup page writes one set of names for both boards, and the 5-player one
+// can add a colour this board has no tokens or cells for. Anything unknown here
+// is dropped rather than left to blow up on TOKENS[color] later.
+const ACTIVE_COLORS = Object.keys(PLAYER_NAMES).filter((color) =>
+  COLORS.includes(color),
+);
 const PLAYABLE_COLORS = ACTIVE_COLORS.length > 0 ? ACTIVE_COLORS : COLORS;
 
 const TOKEN_POSITIONS = {
@@ -281,7 +295,32 @@ const gameState = {
   diceSpinTurns: 0,
   sixStreakByColor: SIX_STREAK_BY_COLOR,
   gameWinners: [],
+  gameOver: false,
 };
+
+// Returns the next player who has not finished yet, or null when everybody has.
+// The search is bounded: walking the ring with an unbounded `while` hangs the
+// tab once every colour is in gameWinners.
+function getNextActivePlayer(fromColor) {
+  const startIndex = PLAYABLE_COLORS.indexOf(fromColor);
+
+  for (let step = 1; step <= PLAYABLE_COLORS.length; step += 1) {
+    const candidate =
+      PLAYABLE_COLORS[(startIndex + step) % PLAYABLE_COLORS.length];
+
+    if (!gameState.gameWinners.includes(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function getUnfinishedPlayers() {
+  return PLAYABLE_COLORS.filter(
+    (color) => !gameState.gameWinners.includes(color),
+  );
+}
 
 function getPlayerName(color) {
   return (
@@ -316,6 +355,7 @@ function resetGameState() {
     gameState.sixStreakByColor[color] = 0;
   });
   gameState.gameWinners.length = 0;
+  gameState.gameOver = false;
 }
 
 initializeTokenPositions();
@@ -325,12 +365,15 @@ export {
   COLORS,
   PATHS,
   PLAYABLE_COLORS,
+  PLAYER_COLORS,
   PLAYER_NAMES,
   SAFE_CELLS,
   TOKEN_POSITIONS,
   TOKENS,
   gameState,
+  getNextActivePlayer,
   getPlayerName,
+  getUnfinishedPlayers,
   initializeTokenPositions,
   resetGameState,
   resetTokenPositions,

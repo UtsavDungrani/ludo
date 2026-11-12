@@ -200,6 +200,37 @@
   background-color: blue;
 }
 
+/* Empty seat left behind in the yard when a token goes out, so you can see at
+   a glance how many of your tokens are still waiting. Sits in the same grid
+   slot as its token and is painted under it, so it only shows once the token
+   leaves. */
+.token-slot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+  margin: 20px;
+  pointer-events: none;
+}
+.token-slot[data-slot="1"] {
+  grid-row: 1;
+  grid-column: 1;
+}
+.token-slot[data-slot="2"] {
+  grid-row: 1;
+  grid-column: 2;
+}
+.token-slot[data-slot="3"] {
+  grid-row: 2;
+  grid-column: 1;
+}
+.token-slot[data-slot="4"] {
+  grid-row: 2;
+  grid-column: 2;
+}
+
 /* Tokens the current player may pick this turn */
 .token.selectable {
   cursor: pointer;
@@ -452,6 +483,13 @@
     width: 24px;
     height: 24px;
   }
+  .token-slot {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+    margin-top: 15px;
+    margin-left: 15px;
+  }
   .token {
     margin-top: 15px;
     margin-left: 15px;
@@ -563,6 +601,13 @@
   .token {
     width: 32px;
     height: 32px;
+  }
+  .token-slot {
+    width: 32px;
+    height: 32px;
+    border-width: 2px;
+    margin-top: 20px;
+    margin-left: 20px;
   }
   .token {
     margin-top: 20px;

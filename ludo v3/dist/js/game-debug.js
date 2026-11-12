@@ -1,4 +1,11 @@
-import { PLAYABLE_COLORS, gameState } from "./game-state.js";
+import {
+  PATHS,
+  PLAYABLE_COLORS,
+  TOKENS,
+  gameState,
+  getPlayerName,
+} from "./game-state.js";
+import { checkWinCondition, setupInitialGameState } from "./game-flow.js";
 import {
   checkCollision,
   placeTokenDirect as placeTokenDirectInternal,
@@ -10,6 +17,7 @@ import {
   diceFace,
   resetDiceButtons,
   updateCellClasses,
+  updateCurrentPlayerBanner,
 } from "./game-ui.js";
 
 function setDebugMode(enabled, persist = true) {
@@ -68,6 +76,7 @@ function setupDebugTools() {
       return {
         currentTurn: gameState.currentTurn,
         winners: [...gameState.gameWinners],
+        gameOver: gameState.gameOver,
         playableColors: [...PLAYABLE_COLORS],
         sixStreakByColor: { ...gameState.sixStreakByColor },
         dice: {
@@ -77,9 +86,13 @@ function setupDebugTools() {
       };
     },
     reset() {
+      // Full restart: clears winners, the game-over flag, six streaks and any
+      // result images, so win scenarios can be run again without a reload.
       resetAllTokensToHome();
+      setupInitialGameState();
       updateCellClasses();
       resetDiceButtons();
+      return window.LudoDebug.status();
     },
     placeTokenDirect(tokenId, colorOrCell, maybeCell) {
       const cellId = typeof maybeCell === "string" ? maybeCell : colorOrCell;
@@ -224,6 +237,78 @@ function setupDebugTools() {
         updateCellClasses();
         return { scenario: "overlap4", cell: "c22" };
       },
+      // Drop `color` one step from winning, then roll a 1 and pick the token
+      // to watch the real win happen through normal play.
+      almostWin(color = gameState.currentTurn) {
+        const path = PATHS[color];
+        const homeCell = path[path.length - 1];
+        const oneStepAway = path[path.length - 2];
+
+        TOKENS[color].forEach((tokenId, index) => {
+          placeTokenDirectInternal(
+            tokenId,
+            index < 3 ? homeCell : oneStepAway,
+          );
+        });
+
+        gameState.currentTurn = color;
+        updateCurrentPlayerBanner();
+        updateCellClasses();
+        resetDiceButtons();
+
+        return {
+          scenario: "almostWin",
+          color,
+          next: "LudoDebug.dice.rollTo(1), then click the highlighted token",
+        };
+      },
+
+      // Finish `color` immediately and show their result image.
+      win(color = gameState.currentTurn) {
+        TOKENS[color].forEach((tokenId) => {
+          placeTokenDirectInternal(tokenId, `${color}_home`);
+        });
+
+        gameState.currentTurn = color;
+        const won = checkWinCondition(color);
+        updateCellClasses();
+
+        return {
+          scenario: "win",
+          color,
+          won,
+          winners: [...gameState.gameWinners],
+          gameOver: gameState.gameOver,
+        };
+      },
+
+      // Play the whole game out so every result image is on screen at once:
+      // 1st, 2nd, 3rd and the loser.
+      finishAll() {
+        PLAYABLE_COLORS.forEach((color) => {
+          if (gameState.gameOver || gameState.gameWinners.includes(color)) {
+            return;
+          }
+
+          TOKENS[color].forEach((tokenId) => {
+            placeTokenDirectInternal(tokenId, `${color}_home`);
+          });
+
+          gameState.currentTurn = color;
+          checkWinCondition(color);
+        });
+
+        updateCellClasses();
+
+        return {
+          scenario: "finishAll",
+          standings: gameState.gameWinners.map(
+            (color, index) => `${index + 1}. ${getPlayerName(color)}`,
+          ),
+          gameOver: gameState.gameOver,
+        };
+      },
+
       captureTest() {
         resetAllTokensToHome();
         placeTokenDirectInternal("token-red-1", "c20");

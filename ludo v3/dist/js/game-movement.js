@@ -39,6 +39,11 @@ function getDiceRotation(value, spinTurns = 0) {
 }
 
 function rollDice(dice, button, forcedValue) {
+  if (gameState.gameOver) {
+    button.disabled = true;
+    return;
+  }
+
   button.disabled = true;
 
   const color = gameState.currentTurn;

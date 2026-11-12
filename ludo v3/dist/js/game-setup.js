@@ -7,8 +7,12 @@ const colorSelectionDiv = document.getElementById("colorSelection");
 let selectedColors = [];
 let playerCount = 0;
 
+// Seating order, and the order board5-geometry.js lays the five sectors out
+// in, so the 5-player board's yards line up with the names entered here.
+const SEAT_COLORS = ["red", "green", "yellow", "blue", "purple"];
+
 function getDefaultColors(count) {
-  return ["red", "green", "yellow", "blue"].slice(0, count);
+  return SEAT_COLORS.slice(0, count);
 }
 
 function updatePlayerInputs(count) {
@@ -95,5 +99,6 @@ gameSetupForm.addEventListener("submit", (event) => {
   localStorage.setItem("playerNames", JSON.stringify(playerNames));
   localStorage.setItem("selectedColors", JSON.stringify(selectedColors));
 
-  window.location.href = "game.html";
+  // Five players need the decagon board; two to four fit the square one.
+  window.location.href = playerCount === 5 ? "game5.html" : "game.html";
 });

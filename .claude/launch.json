@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ludo-v3",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8777",
+        "--directory",
+        "ludo v3"
+      ],
+      "port": 8777
+    },
+    {
+      "name": "ludo-v3-dist",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-u",
+        "D:/Projects/ludo/ludo v3/dev-server.py",
+        "8915"
+      ],
+      "port": 8915,
+      "autoPort": false
+    }
+  ]
+}

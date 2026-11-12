@@ -1,9 +1,12 @@
 import {
   COLORS,
   PLAYABLE_COLORS,
+  PLAYER_COLORS,
   PLAYER_NAMES,
   SAFE_CELLS,
   gameState,
+  getNextActivePlayer,
+  getPlayerName,
 } from "./game-state.js";
 
 const diceButton = document.getElementById("rollButton");
@@ -71,6 +74,38 @@ function moveToken(tokenId, cellId) {
   }
 }
 
+// The turn banner wears the current player's colour, the same way the
+// 5-player board does, so whose turn it is reads at a glance.
+function updateCurrentPlayerBanner() {
+  const banner = document.getElementById("currentPlayer");
+
+  if (!banner) {
+    return;
+  }
+
+  const color = gameState.currentTurn;
+  banner.textContent = `${getPlayerName(color)}'s turn`;
+
+  const swatch = PLAYER_COLORS[color];
+  if (swatch) {
+    banner.style.background = swatch;
+    // White on yellow is unreadable, so that one gets dark text.
+    banner.style.color = color === "yellow" ? "#111827" : "#ffffff";
+  }
+}
+
+function setBannerResult(text) {
+  const banner = document.getElementById("currentPlayer");
+
+  if (!banner) {
+    return;
+  }
+
+  banner.textContent = text;
+  banner.style.background = "#111827";
+  banner.style.color = "#ffffff";
+}
+
 function hideCurrentDice() {
   if (diceContainer) {
     diceContainer.classList.add("hidden");
@@ -82,21 +117,19 @@ function hideCurrentDice() {
 }
 
 function showNextDice() {
-  let nextTurn = gameState.currentTurn;
-
-  if (PLAYABLE_COLORS.length === 0) {
+  if (PLAYABLE_COLORS.length === 0 || gameState.gameOver) {
+    hideCurrentDice();
     return;
   }
 
-  let guard = 0;
-  do {
-    const currentIndex = PLAYABLE_COLORS.indexOf(nextTurn);
-    nextTurn = PLAYABLE_COLORS[(currentIndex + 1) % PLAYABLE_COLORS.length];
-    guard += 1;
-  } while (
-    gameState.gameWinners.includes(nextTurn) &&
-    guard <= PLAYABLE_COLORS.length
-  );
+  // The old loop could fall out still pointing at a finished player, which left
+  // the dice disabled with nobody able to roll.
+  const nextTurn = getNextActivePlayer(gameState.currentTurn);
+
+  if (!nextTurn) {
+    hideCurrentDice();
+    return;
+  }
 
   gameState.currentTurn = nextTurn;
 
@@ -106,17 +139,16 @@ function showNextDice() {
 
   setAllDiceFaces(gameState.lastDiceRotation);
 
-  const currentPlayerElement = document.getElementById("currentPlayer");
-  if (currentPlayerElement) {
-    currentPlayerElement.textContent = `${PLAYER_NAMES[gameState.currentTurn] || `Player ${gameState.currentTurn}`}'s turn`;
-  }
+  updateCurrentPlayerBanner();
 
   resetDiceButtons();
 }
 
 function resetDiceButtons() {
   if (diceButton) {
-    diceButton.disabled = gameState.gameWinners.includes(gameState.currentTurn);
+    diceButton.disabled =
+      gameState.gameOver ||
+      gameState.gameWinners.includes(gameState.currentTurn);
   }
 }
 
@@ -147,9 +179,50 @@ function showTemporaryMessage(message) {
   }, 2500);
 }
 
+function setYardSlotsVisible(color, visible) {
+  const homeElement = document.getElementById(`${color}-h`);
+
+  if (!homeElement) {
+    return;
+  }
+
+  homeElement.querySelectorAll(".token-slot").forEach((slot) => {
+    slot.style.display = visible ? "" : "none";
+  });
+}
+
+// The result image fills the yard, so anything still parked there has to go or
+// it sits on top of the picture. Tokens out on the board are left alone.
+function clearYardForResultImage(color) {
+  const homeElement = document.getElementById(`${color}-h`);
+
+  if (!homeElement) {
+    return;
+  }
+
+  setYardSlotsVisible(color, false);
+  homeElement.querySelectorAll(".token").forEach((token) => {
+    token.style.display = "none";
+  });
+}
+
+// Puts a yard back to a playable state after a result image was shown.
+function clearResultImage(color) {
+  const homeElement = document.getElementById(`${color}-h`);
+
+  if (!homeElement) {
+    return;
+  }
+
+  homeElement.style.backgroundImage = "";
+  homeElement.style.backgroundSize = "";
+  homeElement.style.backgroundPosition = "";
+}
+
 function displayWinnerImage(color, position) {
   const homeElement = document.getElementById(`${color}-h`);
   if (homeElement) {
+    clearYardForResultImage(color);
     homeElement.style.backgroundImage = `url('../img/win${position}.jpg')`;
     homeElement.style.backgroundSize = "cover";
     homeElement.style.backgroundPosition = "center";
@@ -159,6 +232,7 @@ function displayWinnerImage(color, position) {
 function displayLoserImage(color) {
   const homeElement = document.getElementById(`${color}-h`);
   if (homeElement) {
+    clearYardForResultImage(color);
     homeElement.style.backgroundImage = "url('../img/looser.jpg')";
     homeElement.style.backgroundSize = "cover";
     homeElement.style.backgroundPosition = "center";
@@ -278,6 +352,7 @@ window.addEventListener("resize", () => {
 
 export {
   applyYardSlot,
+  clearResultImage,
   clearYardSlot,
   diceButton,
   diceContainer,
@@ -292,7 +367,10 @@ export {
   positionHomeTriangleTokens,
   resetDiceButtons,
   setAllDiceFaces,
+  setBannerResult,
+  setYardSlotsVisible,
   showNextDice,
   showTemporaryMessage,
   updateCellClasses,
+  updateCurrentPlayerBanner,
 };
